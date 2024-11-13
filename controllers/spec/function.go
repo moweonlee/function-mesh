@@ -38,6 +38,18 @@ var log = logf.Log.WithName("function-resource")
 
 func MakeFunctionHPA(function *v1alpha1.Function) *autov2.HorizontalPodAutoscaler {
 	objectMeta := MakeFunctionObjectMeta(function)
+
+	runnerImagePullSecrets := getFunctionRunnerImagePullSecret()
+
+	for _, mapSecret := range runnerImagePullSecrets {
+		if value, ok := mapSecret["name"]; ok {
+			function.Spec.Pod.ImagePullSecrets = append(function.Spec.Pod.ImagePullSecrets, corev1.LocalObjectReference{Name: value})
+		}
+	}
+
+	runnerImagePullPolicy := getFunctionRunnerImagePullPolicy()
+	function.Spec.ImagePullPolicy = runnerImagePullPolicy
+
 	targetRef := autov2.CrossVersionObjectReference{
 		Kind:       function.Kind,
 		Name:       function.Name,

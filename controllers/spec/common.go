@@ -1923,6 +1923,14 @@ func generateAnnotations(customAnnotations ...map[string]string) map[string]stri
 	return annotations
 }
 
+func getFunctionRunnerImagePullSecret() []map[string]string {
+	return Configs.RunnerImagePullSecrets
+}
+
+func getFunctionRunnerImagePullPolicy() corev1.PullPolicy {
+	return Configs.RunnerImagePullPolicy
+}
+
 func getFunctionRunnerImage(spec *v1alpha1.FunctionSpec) string {
 	runtime := &spec.Runtime
 	img := spec.Image
