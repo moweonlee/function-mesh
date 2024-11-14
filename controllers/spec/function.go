@@ -19,8 +19,6 @@ package spec
 
 import (
 	"context"
-	"regexp"
-
 	"github.com/streamnative/function-mesh/api/compute/v1alpha1"
 	"github.com/streamnative/function-mesh/utils"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -29,6 +27,7 @@ import (
 	v1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"regexp"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -38,16 +37,6 @@ var log = logf.Log.WithName("function-resource")
 
 func MakeFunctionHPA(function *v1alpha1.Function) *autov2.HorizontalPodAutoscaler {
 	objectMeta := MakeFunctionObjectMeta(function)
-
-	runnerImagePullSecrets := getFunctionRunnerImagePullSecret()
-	for _, mapSecret := range runnerImagePullSecrets {
-		if value, ok := mapSecret["name"]; ok {
-			function.Spec.Pod.ImagePullSecrets = append(function.Spec.Pod.ImagePullSecrets, corev1.LocalObjectReference{Name: value})
-		}
-	}
-	runnerImagePullPolicy := getFunctionRunnerImagePullPolicy()
-	function.Spec.ImagePullPolicy = runnerImagePullPolicy
-
 	targetRef := autov2.CrossVersionObjectReference{
 		Kind:       function.Kind,
 		Name:       function.Name,
@@ -64,6 +53,16 @@ func MakeFunctionService(function *v1alpha1.Function) *corev1.Service {
 
 func MakeFunctionStatefulSet(ctx context.Context, cli client.Client, function *v1alpha1.Function) (*appsv1.StatefulSet, error) {
 	objectMeta := MakeFunctionObjectMeta(function)
+
+	runnerImagePullSecrets := getFunctionRunnerImagePullSecret()
+	for _, mapSecret := range runnerImagePullSecrets {
+		if value, ok := mapSecret["name"]; ok {
+			function.Spec.Pod.ImagePullSecrets = append(function.Spec.Pod.ImagePullSecrets, corev1.LocalObjectReference{Name: value})
+		}
+	}
+	runnerImagePullPolicy := getFunctionRunnerImagePullPolicy()
+	function.Spec.ImagePullPolicy = runnerImagePullPolicy
+
 	labels := makeFunctionLabels(function)
 	statefulSet := MakeStatefulSet(objectMeta, function.Spec.Replicas, function.Spec.DownloaderImage,
 		makeFunctionContainer(function), makeFunctionVolumes(function, function.Spec.Pulsar.AuthConfig), labels, function.Spec.Pod,
